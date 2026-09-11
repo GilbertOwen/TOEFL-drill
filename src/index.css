@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Question text: a sturdy book face on every platform, no web font download. */
+  --font-serif: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+
+  --animate-reveal: reveal 220ms ease-out;
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-stone-50 font-sans text-stone-900 antialiased;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-blue-600);
+    outline-offset: 2px;
+  }
+
+  kbd {
+    @apply rounded border border-current/30 px-1.5 py-px font-sans text-xs font-medium opacity-80;
+  }
+}
