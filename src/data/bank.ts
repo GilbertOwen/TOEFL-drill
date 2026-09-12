@@ -9,10 +9,30 @@ type ItemFile = { items?: (CompletionItem | ErrorItem)[]; passages?: Passage[] }
 
 const files = import.meta.glob<ItemFile>("./items/*.ts", { eager: true });
 
-export const PASSAGES: readonly Passage[] = Object.values(files).flatMap((f) => f.passages ?? []);
+function loadCustomData() {
+  try {
+    const raw = localStorage.getItem("toefl-itp-drill.custom-bank");
+    if (!raw) return { items: [], passages: [] };
+    const parsed = JSON.parse(raw);
+    return {
+      items: Array.isArray(parsed.items) ? parsed.items : [],
+      passages: Array.isArray(parsed.passages) ? parsed.passages : [],
+    };
+  } catch {
+    return { items: [], passages: [] };
+  }
+}
+
+const customData = loadCustomData();
+
+export const PASSAGES: readonly Passage[] = [
+  ...Object.values(files).flatMap((f) => f.passages ?? []),
+  ...customData.passages,
+];
 
 export const ITEMS: readonly Item[] = [
   ...Object.values(files).flatMap((f) => f.items ?? []),
+  ...customData.items,
   ...PASSAGES.flatMap((p) => p.items),
 ];
 
