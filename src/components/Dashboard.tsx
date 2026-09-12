@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { DRILLABLE, PASSAGES, countItems } from "../data/bank.ts";
+import { DRILLABLE, ITEM_BY_ID, PASSAGES, countItems } from "../data/bank.ts";
 import { CATEGORY_BY_ID } from "../data/categories.ts";
 import { daysAheadLabel, formatClock, localDayNumber, percent } from "../lib/format.ts";
 import { drillPlan, readingPlan, reviewPlan, section2Plan, type SessionPlan } from "../lib/plans.ts";
@@ -15,8 +15,9 @@ import {
   type CategoryStats,
 } from "../lib/stats.ts";
 import { useLog } from "../lib/store.ts";
-import type { Section } from "../types.ts";
+import type { Attempt, CategoryId, Section } from "../types.ts";
 import { DataControls } from "./DataControls.tsx";
+import { itemPreview } from "./ItemView.tsx";
 import { buttonPrimary, buttonSecondary, sectionHeading } from "./ui.ts";
 
 type Props = { onStart: (plan: SessionPlan) => void; onChoose: () => void };
@@ -109,10 +110,23 @@ export function Dashboard({ onStart, onChoose }: Props) {
         {weak.length === 0 ? (
           <p className="mt-3 text-stone-700">None yet.</p>
         ) : (
-          <StatsList
-            rows={weak}
-            detail={(s) => `${percent(s.recentAccuracy)} last 10 · ${percent(s.accuracy)} overall · ${s.attempts} answers`}
-          />
+          <>
+            <StatsList
+              rows={weak}
+              detail={(s) => `${percent(s.recentAccuracy)} last 10 · ${percent(s.accuracy)} overall · ${s.attempts} answers`}
+            />
+            <button
+              type="button"
+              className={`${buttonSecondary} mt-4`}
+              onClick={() => {
+                const prompt = exportWeaknessPrompt(stats, attempts);
+                navigator.clipboard.writeText(prompt);
+                alert("Prompt copied to clipboard! Paste it to an AI to generate new questions targeting your weaknesses.");
+              }}
+            >
+              Copy Prompt for AI
+            </button>
+          </>
         )}
       </section>
 
@@ -239,4 +253,44 @@ function BankCounts() {
       </p>
     </>
   );
+}
+
+function exportWeaknessPrompt(stats: Map<CategoryId, CategoryStats>, attempts: readonly Attempt[]): string {
+  const weak = weakCategories(stats.values());
+  if (weak.length === 0) return "I don't have any weak categories yet!";
+
+  let prompt = `I am practicing for the TOEFL ITP test and need more practice items for my weakest categories.\n\n`;
+  prompt += `Here are my current weak categories:\n`;
+
+  const missesByCategory = new Map<CategoryId, Attempt[]>();
+  for (const a of attempts) {
+    if (!a.correct) {
+      const list = missesByCategory.get(a.category) || [];
+      list.push(a);
+      missesByCategory.set(a.category, list);
+    }
+  }
+
+  for (const w of weak) {
+    const cat = CATEGORY_BY_ID[w.category];
+    prompt += `\n### ${cat.label} (ID: ${w.category})\n`;
+    prompt += `Description: ${cat.description}\n`;
+    prompt += `My recent accuracy: ${Math.round(w.recentAccuracy * 100)}%\n`;
+
+    const categoryMisses = missesByCategory.get(w.category) || [];
+    const recentMisses = categoryMisses.slice(-2);
+
+    if (recentMisses.length > 0) {
+      prompt += `\nExamples of questions I recently got wrong in this category:\n`;
+      for (const m of recentMisses) {
+        const item = ITEM_BY_ID.get(m.itemId);
+        if (item) {
+          prompt += `- ${itemPreview(item)}\n`;
+        }
+      }
+    }
+  }
+
+  prompt += `\nPlease act as a TOEFL item writer. Generate 20 new items focusing primarily on these weak categories. Distribute them evenly. Follow the existing JSON schema and project rules for writing items.`;
+  return prompt;
 }

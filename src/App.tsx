@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { ChooseCategories } from "./components/ChooseCategories.tsx";
 import { Dashboard } from "./components/Dashboard.tsx";
+import { History } from "./components/History.tsx";
 import { PracticeSession } from "./components/PracticeSession.tsx";
 import { Reference } from "./components/Reference.tsx";
 import { TimedSession } from "./components/TimedSession.tsx";
 import type { SessionPlan } from "./lib/plans.ts";
 
-type Page = "dashboard" | "choose" | "reference";
+type Page = "dashboard" | "choose" | "reference" | "history";
 type Screen = { page: Page } | { session: SessionPlan; id: number };
 
 const NAV: { page: Page; label: string }[] = [
   { page: "dashboard", label: "Dashboard" },
+  { page: "history", label: "History" },
   { page: "choose", label: "Choose categories" },
   { page: "reference", label: "Reference" },
 ];
@@ -57,6 +59,7 @@ export default function App() {
       </header>
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
         {screen.page === "dashboard" && <Dashboard onStart={start} onChoose={() => setScreen({ page: "choose" })} />}
+        {screen.page === "history" && <History onExit={home} />}
         {screen.page === "choose" && <ChooseCategories onStart={start} />}
         {screen.page === "reference" && <Reference onStart={start} />}
       </main>
